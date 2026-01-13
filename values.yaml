@@ -8,7 +8,10 @@ image:
 service:
   type: ClusterIP
   port: 80
-  
+
 serviceAccount:
   create: true
   name: ""
+
+ingress:
+  enabled: false
