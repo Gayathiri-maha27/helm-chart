@@ -1,0 +1,20 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: deny-privileged
+  annotations:
+    "helm.sh/hook": crd-install
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sDenyPrivileged
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8sdenyprivileged
+        violation[{"msg": msg}] {
+          input.review.object.spec.containers[_].securityContext.privileged == true
+          msg := "Privileged container not allowed"
+        }
+
