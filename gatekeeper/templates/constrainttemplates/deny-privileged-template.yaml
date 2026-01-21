@@ -8,7 +8,7 @@ spec:
   crd:
     spec:
       names:
-        kind: K8sRequiredLabels
+        kind: K8sDenyPrivilegedContainers 
   targets:
     - target: admission.k8s.gatekeeper.sh
       rego: |
