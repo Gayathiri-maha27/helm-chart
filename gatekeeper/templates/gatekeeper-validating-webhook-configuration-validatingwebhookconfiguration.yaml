@@ -3,7 +3,11 @@
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
-  annotations: {{- toYaml .Values.validatingWebhookAnnotations | trim | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/compare-options: IgnoreExtraneous
+    {{- if .Values.validatingWebhookAnnotations }}
+    {{- toYaml .Values.validatingWebhookAnnotations | trim | nindent 4 }}
+    {{- end }}
   labels:
     app: '{{ template "gatekeeper.name" . }}'
     chart: '{{ template "gatekeeper.name" . }}'
@@ -25,11 +29,6 @@ webhooks:
       path: /v1/admit
     {{- end }}
   failurePolicy: {{ .Values.validatingWebhookFailurePolicy }}
-  {{- if .Values.validatingWebhookMatchConditions }}
-  {{- if ge (int .Capabilities.KubeVersion.Minor) 28 }}
-  matchConditions: {{ toYaml .Values.validatingWebhookMatchConditions | nindent 4 }}
-  {{- end }}
-  {{- end }}
   matchPolicy: Exact
   name: validation.gatekeeper.sh
   namespaceSelector:
@@ -40,8 +39,7 @@ webhooks:
       operator: NotIn
       values:
       - {{ .Release.Namespace }}
-    
-    {{- range $key, $value := .Values.validatingWebhookExemptNamespacesLabels}}
+    {{- range $key, $value := .Values.validatingWebhookExemptNamespacesLabels }}
     - key: {{ $key }}
       operator: NotIn
       values:
@@ -49,7 +47,12 @@ webhooks:
       - {{ . }}
       {{- end }}
     {{- end }}
-  objectSelector: {{ toYaml .Values.validatingWebhookObjectSelector | nindent 4 }}
+  objectSelector: {{- toYaml .Values.validatingWebhookObjectSelector | nindent 4 }}
+  {{- if .Values.validatingWebhookMatchConditions }}
+  {{- if ge (int .Capabilities.KubeVersion.Minor) 28 }}
+  matchConditions: {{- toYaml .Values.validatingWebhookMatchConditions | nindent 4 }}
+  {{- end }}
+  {{- end }}
   rules:
   {{- if .Values.validatingWebhookCustomRules }}
   {{- toYaml .Values.validatingWebhookCustomRules | nindent 2 }}
@@ -69,43 +72,11 @@ webhooks:
     {{- end }}
     resources:
     - '*'
-    # Explicitly list all known subresources except "status" (to avoid destabilizing the cluster and increasing load on gatekeeper).
-    # You can find a rough list of subresources by doing a case-sensitive search in the Kubernetes codebase for 'Subresource("'
     {{- range .Values.validatingWebhookSubResources }}
     - {{ . }}
     {{- end }}
     scope: '{{ .Values.validatingWebhookScope }}'
   {{- end }}
-  sideEffects: None
-  timeoutSeconds: {{ .Values.validatingWebhookTimeoutSeconds }}
-- admissionReviewVersions:
-  - v1
-  - v1beta1
-  clientConfig:
-    service:
-      name: gatekeeper-webhook-service
-      namespace: '{{ .Release.Namespace }}'
-      path: /v1/admitlabel
-  failurePolicy: {{ .Values.validatingWebhookCheckIgnoreFailurePolicy }}
-  matchPolicy: Exact
-  name: check-ignore-label.gatekeeper.sh
-  namespaceSelector:
-    matchExpressions:
-    - key: kubernetes.io/metadata.name
-      operator: NotIn
-      values:
-      - {{ .Release.Namespace }}
-  rules:
-  - apiGroups:
-    - ""
-    apiVersions:
-    - '*'
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - namespaces
-    scope: '*'
   sideEffects: None
   timeoutSeconds: {{ .Values.validatingWebhookTimeoutSeconds }}
 {{- end }}
