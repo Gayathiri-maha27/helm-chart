@@ -4,6 +4,7 @@ kind: Deployment
 metadata:
   annotations:
     {{- include "gatekeeper.commonAnnotations" . | nindent 4 }}
+    argocd.argoproj.io/sync-wave: "0" 
   labels:
     {{- include "gatekeeper.commonLabels" . | nindent 4 }}
     app: '{{ template "gatekeeper.name" . }}'
