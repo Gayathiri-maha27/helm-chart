@@ -3,7 +3,7 @@ kind: K8sRequiredCPU
 metadata:
   name: cpu-limit-mandatory
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   enforcementAction: deny
   match:
