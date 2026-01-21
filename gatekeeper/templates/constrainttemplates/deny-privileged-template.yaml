@@ -8,18 +8,21 @@ spec:
   crd:
     spec:
       names:
-        kind: K8sDenyPrivilegedContainers 
+        kind: K8sDenyPrivilegedContainers
   targets:
     - target: admission.k8s.gatekeeper.sh
       rego: |
-        package k8srequiredlabels
-
-        required := {"app", "env"}
+        package k8sdenypressuredcontainers
 
         violation[{"msg": msg}] {
-          provided := {k | input.review.object.metadata.labels[k]}
-          missing := required - provided
-          count(missing) > 0
-          msg := sprintf("Missing required labels: %v", [missing])
+          container := input.review.object.spec.containers[_]
+          container.securityContext.privileged == true
+          msg := sprintf("Privileged container is not allowed: %v", [container.name])
         }
 
+        # Also check initContainers if present
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.initContainers[_]
+          container.securityContext.privileged == true
+          msg := sprintf("Privileged initContainer is not allowed: %v", [container.name])
+        }
