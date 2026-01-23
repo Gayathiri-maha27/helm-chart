@@ -60,8 +60,9 @@ image:
 preInstall:
   crdRepository:
     image:
-      repository: null
+      repository: openpolicyagent/gatekeeper-crds
       tag: v3.21.0
+      pullPolicy: IfNotPresent
 postUpgrade:
   labelNamespace:
     serviceAccount:
