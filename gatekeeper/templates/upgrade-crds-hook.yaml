@@ -11,7 +11,7 @@ metadata:
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
     helm.sh/hook-delete-policy: "hook-succeeded,before-hook-creation"
-    helm.sh/hook-weight: "1"
+    helm.sh/hook-weight: "-5"   # ← FIXED: Run BEFORE everything
 rules:
   - apiGroups: ["apiextensions.k8s.io"]
     resources: ["customresourcedefinitions"]
@@ -33,7 +33,7 @@ metadata:
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
     helm.sh/hook-delete-policy: "hook-succeeded,before-hook-creation"
-    helm.sh/hook-weight: "1"
+    helm.sh/hook-weight: "-5"   # ← FIXED
 subjects:
   - kind: ServiceAccount
     name: {{ .Values.upgradeCRDs.serviceAccount.name }}
@@ -53,11 +53,11 @@ metadata:
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
   name: {{ .Values.upgradeCRDs.serviceAccount.name }}
-  namespace: '{{ .Release.Namespace }}'
+  namespace: {{ .Release.Namespace }}
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
     helm.sh/hook-delete-policy: "hook-succeeded,before-hook-creation"
-    helm.sh/hook-weight: "1"
+    helm.sh/hook-weight: "-5"   # ← FIXED
 {{- end }}
 ---
 apiVersion: batch/v1
@@ -70,7 +70,7 @@ metadata:
     {{- include "gatekeeper.commonLabels" . | nindent 4 }}
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
-    helm.sh/hook-weight: "1"
+    helm.sh/hook-weight: "-5"   # ← FIXED: MUST be lowest weight
     helm.sh/hook-delete-policy: "hook-succeeded,before-hook-creation"
 spec:
   backoffLimit: 3
@@ -109,10 +109,14 @@ spec:
           {{- end }}
         {{- end }}
         imagePullPolicy: '{{ .Values.image.pullPolicy }}'
+        command: ["/bin/sh", "-c"]
         args:
-        - apply
-        - -f
-        - crds/
+          - |
+            set -e;
+            kubectl apply -f /crd-manifests/;
+        volumeMounts:
+          - name: crd-manifests
+            mountPath: /crd-manifests
         resources:
           {{- toYaml .Values.crds.resources | nindent 10 }}
         securityContext:
@@ -121,12 +125,20 @@ spec:
             type: RuntimeDefault
           {{- end }}
           {{- toYaml .Values.crds.securityContext | nindent 10 }}
-      {{- with .Values.crds }}
-      affinity:
-        {{- toYaml .affinity | nindent 8 }}
-      tolerations:
-        {{- toYaml .tolerations | nindent 8 }}
-      nodeSelector:
-        {{- toYaml .nodeSelector | nindent 8 }}
-      {{- end }}
+      volumes:
+        - name: crd-manifests
+          emptyDir: {}
+      initContainers:
+        - name: fetch-crds
+          image: '{{ .Values.image.crdRepository }}:{{ .Values.image.release }}'
+          imagePullPolicy: '{{ .Values.image.pullPolicy }}'
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e;
+              mkdir -p /output/crds;
+              cp /crds/*.yaml /output/crds/;
+          volumeMounts:
+            - name: crd-manifests
+              mountPath: /output
 {{- end }}
