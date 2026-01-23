@@ -1,7 +1,7 @@
 apiVersion: templates.gatekeeper.sh/v1
 kind: ConstraintTemplate
 metadata:
-  name: k8sdenyhostpath
+  name: k8sDenyhostpath
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
