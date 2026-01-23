@@ -100,7 +100,7 @@ postInstall:
     serviceAccount:
       name: gatekeeper-update-namespace-label
       create: true
-    enabled: true
+    enabled: false
     extraRules: []
     image:
       repository: openpolicyagent/gatekeeper-crds
@@ -117,7 +117,7 @@ postInstall:
     extraAnnotations: {}
     priorityClassName: ""
   probeWebhook:
-    enabled: true
+    enabled: false
     image:
       repository: curlimages/curl
       tag: 8.12.0
